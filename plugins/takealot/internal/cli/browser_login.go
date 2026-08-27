@@ -148,7 +148,7 @@ func runBrowserLogin(command *cobra.Command, initialEmail string, trustDevice bo
 		}
 	}()
 	loginURL := "http://" + listener.Addr().String() + loginPagePath + "?" + url.Values{"token": []string{token}}.Encode()
-	fmt.Fprintf(command.ErrOrStderr(), "Open this local Takealot login page: %s\n", loginURL)
+	fmt.Fprintf(command.OutOrStdout(), "Open this local Takealot login page: %s\n", loginURL)
 	_ = openBrowser(loginURL)
 
 	select {
