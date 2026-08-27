@@ -26,13 +26,13 @@ func Execute() error {
 func newRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "takealot",
-		Short:         "Research Takealot products",
+		Short:         "Research Takealot products and manage wishlists",
 		Version:       Version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().BoolVar(&options.json, "json", false, "output normalized JSON")
-	root.AddCommand(newSearchCommand(), newProductCommand(), newVersionCommand())
+	root.AddCommand(newSearchCommand(), newProductCommand(), newVersionCommand(), newAuthCommand(), newWishlistCommand())
 	return root
 }
 

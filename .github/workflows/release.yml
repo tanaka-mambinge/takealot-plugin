@@ -39,7 +39,8 @@ jobs:
 
           version="${TAG#v}"
           manifest_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .codex-plugin/plugin.json | head -n 1)"
-          if [[ "$manifest_version" != "$version" ]]; then
+          manifest_base="${manifest_version%%+*}"
+          if [[ "$manifest_base" != "$version" ]]; then
             echo "Tag version $version does not match plugin version $manifest_version" >&2
             exit 1
           fi

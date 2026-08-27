@@ -29,6 +29,7 @@ Show at least one local product image per shortlisted product in chat. Always ru
 6. Search the exact model externally. Check manufacturer documentation, independent testing, reputable publications, direct Reddit discussions, and credible retailer information.
 7. Compare evidence by theme: performance, durability, comfort, compatibility, setup, support, delivery, and value.
 8. Produce a balanced brief with explicit confidence and caveats.
+9. If the user explicitly asks to save a product, resolve the canonical URL and wishlist target, show both in chat, obtain confirmation, and then use `wishlist add ... --confirm`. Do not modify wishlists automatically during research.
 
 ## Query patterns
 

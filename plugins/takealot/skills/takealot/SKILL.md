@@ -5,13 +5,31 @@ description: Research Takealot products with catalogue data, images, reviews, an
 
 # Takealot Shopping Assistant
 
-Use the `takealot` CLI and web research to help a user decide whether a product is worth considering. This skill is read-only: it may search the catalogue, inspect public product data, inspect public reviews, view product images, and research external sources. It must never log in, access customer accounts, add to cart, check out, pay, place an order, or change any Takealot state.
+Use the `takealot` CLI and web research to help a user decide whether a product is worth considering. Catalogue research is read-only. Authenticated wishlist actions are allowed only after the user explicitly confirms the exact action; never add to cart, check out, pay, place an order, or perform any other account action.
 
 ## Source priority and availability boundaries
 
-Use the CLI as the primary source for all Takealot catalogue facts. After bootstrapping it, use the CLI first for Takealot search results, product identity, listed price, sale status, ratings, review counts, review text, product details, images, and canonical product links. Do not use web search snippets or a Takealot page as a substitute for CLI data, and do not reconstruct the API request yourself. Use web research after the CLI for Reddit, manufacturer documentation, independent reviews, and other external evidence.
+Use the CLI as the primary source for all Takealot catalogue and account facts. After bootstrapping it, use the CLI first for Takealot search results, product identity, listed price, sale status, ratings, review counts, review text, product details, images, canonical product links, and wishlists. Do not use web search snippets or a Takealot page as a substitute for CLI data, and do not reconstruct the API request yourself. Use web research after the CLI for Reddit, manufacturer documentation, independent reviews, and other external evidence.
 
-If the CLI cannot run, explain the failure and do not claim a Takealot price, rating, product detail, or listing status from web results alone. External research may still be labelled separately when useful.
+If the CLI cannot run, explain the failure and do not claim a Takealot price, rating, product detail, wishlist state, or listing status from web results alone. External research may still be labelled separately when useful. Never bypass the CLI with direct API calls.
+
+## Authentication and wishlists
+
+The CLI copies the Takealot Android login flow: it posts the Android-shaped login sections, preserves the Cloudflare cookie needed for a two-step verification submission, refreshes rotating mobile tokens, and stores the session only in the operating system keyring. Never ask the user to paste a token, print a token, read the mobile app's private storage, or put a password in a command argument.
+
+Use these commands through the bootstrapped absolute binary:
+
+```bash
+"$TAKEALOT_BIN" auth status --json
+"$TAKEALOT_BIN" auth login --email user@example.com --password-stdin
+"$TAKEALOT_BIN" auth logout
+"$TAKEALOT_BIN" wishlist list --json
+"$TAKEALOT_BIN" wishlist items <group-id> --json
+"$TAKEALOT_BIN" wishlist add <group-id> <plid-or-takealot-url> --confirm --json
+"$TAKEALOT_BIN" wishlist remove <plid-or-takealot-url> --confirm --json
+```
+
+Only offer login when the user asks to use account features. Without `--password-stdin`, the CLI starts a one-time localhost login page and attempts to open it in the user's browser; it collects the password and optional OTP locally, sends them directly through the Android flow, and shows no token. With `--password-stdin`, provide the password as the first line and an optional OTP as the second line; never put either in argv or chat. Before a wishlist mutation, show the exact canonical product link and wishlist group/name, ask for confirmation in chat, and invoke `--confirm` only after that confirmation. Do not create, rename, delete, add, or remove anything automatically as a side effect of product research. Treat wishlist responses as account data and keep them concise.
 
 Do not give an availability verdict. Takealot availability, stock, delivery, shipping, and fulfilment can vary by delivery address, seller, region, and time. Never say that an item is “available”, “in stock”, “out of stock”, “unavailable”, or guaranteed to arrive. You may report the listed price and sale state returned by the CLI, with the date checked, but do not turn catalogue data into a location-specific availability claim.
 

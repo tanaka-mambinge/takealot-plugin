@@ -1,6 +1,6 @@
 # Takealot Shopping Assistant
 
-A Codex-compatible, read-only shopping assistant plugin with a cross-platform Go CLI. The agent-facing behavior lives in [`skills/takealot/SKILL.md`](skills/takealot/SKILL.md); this README contains implementation and API notes for developers.
+A Codex-compatible Takealot shopping assistant plugin with a cross-platform Go CLI. Catalogue research is read-only; authenticated wishlist changes are explicit, opt-in commands. The agent-facing behavior lives in [`skills/takealot/SKILL.md`](skills/takealot/SKILL.md); this README contains implementation and API notes for developers.
 
 The plugin uses the downloaded Takealot favicon in `assets/takealot-icon.png` for both its logo and composer icon. Takealot branding remains the property of Takealot.
 
@@ -17,6 +17,10 @@ takealot product reviews 66383997 --sort latest --page 0 --variant Black --json
 takealot version
 takealot version --json
 takealot --version
+takealot auth status --json
+takealot auth login --email user@example.com --password-stdin
+takealot wishlist list --json
+takealot wishlist add <group-id> <plid-or-takealot-url> --confirm
 ```
 
 The CLI emits human-readable output by default and stable normalized JSON with `--json`. It accepts numeric PLIDs, `PLID123`, and Takealot product URLs. Product IDs and TSINs remain separate fields and are not accepted as ambiguous product references.
@@ -25,7 +29,9 @@ Product URLs are normalized to Takealot’s current canonical route. Consumers s
 
 `takealot product images` downloads up to 10 gallery images for local rendering. By default, files are stored in the hidden platform-independent cache directory `~/.takealot/images/<PLID>` using Go’s user-home and filepath APIs. On Windows, the default directories are also marked with the Windows Hidden attribute. Use `--dir` to select another directory. JSON output includes the absolute cache directory, original image URL, local path, content type, and byte count. The command only downloads image URLs returned by Takealot product details and keeps each response below 16 MiB.
 
-V1 is intentionally read-only. There are no credentials, persistent authentication, customer-account, cart, checkout, payment, order, or other state-changing operations.
+The CLI does not include credentials. `auth login` follows the Android customer login flow and saves the resulting session in the OS keyring (Linux Secret Service, macOS Keychain, or Windows Credential Manager). `auth status` never prints secrets. Wishlist commands use the authenticated mobile routes; all mutations require `--confirm`. Cart, checkout, payment, order, and other account mutations remain out of scope.
+
+By default, `auth login` starts a loopback-only, one-time login page and attempts to open it with the native browser launcher. The page posts credentials to the local CLI, not to chat or a remote service. Use `--password-stdin` only for automation; its first input line is the password and its optional second line is the OTP.
 
 ## Release and agent bootstrap
 
@@ -59,7 +65,7 @@ To publish a release, update the plugin version, commit the change, and push a m
 
 ## API endpoint map
 
-This plugin uses public, read-only catalogue and review routes discovered during local research. These endpoints are not presented as an official Takealot developer contract and may change. See [`TAKEALOT-API-RESEARCH.md`](TAKEALOT-API-RESEARCH.md) for the full exploration notes.
+This plugin uses Takealot catalogue, review, authentication, and wishlist routes discovered during local research. These customer/mobile endpoints are not presented as an official Takealot developer contract and may change. See [`TAKEALOT-API-RESEARCH.md`](TAKEALOT-API-RESEARCH.md) for the full exploration notes.
 
 | Purpose | Base | Route |
 | --- | --- | --- |
@@ -67,7 +73,7 @@ This plugin uses public, read-only catalogue and review routes discovered during
 | Product details | `https://api.takealot.com/rest/v-1-16-0` | `/product-details/PLID{plid}` |
 | Product reviews | `https://api.takealot.com/rest/v-1-16-0` | `/product-reviews/plid/{plid}` |
 
-Search uses the observed search-instance parameters, `qsearch`, and `searchbox=true`. Details use `platform=android`, `show_takealot_now_alt=false`, and `offer_opt=true`. The client supplies browser/mobile-style headers and makes only GET requests.
+Search uses the observed search-instance parameters, `qsearch`, and `searchbox=true`. Details use `platform=android`, `show_takealot_now_alt=false`, and `offer_opt=true`. Catalogue commands make only GET requests; authenticated wishlist commands use the Android mobile session and wishlist routes.
 
 ## Normalized data
 

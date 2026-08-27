@@ -4,9 +4,9 @@ Captured on 27 August 2026.
 
 This is an external API-surface map, not a map of Takealot's internal
 microservices. The documented seller API and the customer/mobile API are
-separate surfaces. The customer/mobile surface is useful for read-only
-catalogue research, but it is not presented by Takealot as a supported public
-developer API.
+separate surfaces. The customer/mobile surface is useful for catalogue
+research and explicit wishlist actions, but it is not presented by Takealot as
+a supported public developer API.
 
 ## High-level map
 
@@ -38,8 +38,9 @@ flowchart LR
 
 The normal website was protected by a Cloudflare security challenge during
 browser inspection, so its complete current browser network graph could not be
-verified directly. The API calls in this note were low-volume, read-only
-requests.
+verified directly. Android route and payload details were statically inspected
+from the installed Takealot 4.2.1 APK. The CLI preserves the mobile cookie jar
+for login/OTP and stores the resulting session only in the native OS keyring.
 
 ## API surfaces
 
@@ -151,6 +152,14 @@ POST /customers/auth/refresh
 GET  /customers/{customer_id}/summary
 GET  /customer/{customer_id}/orders
 GET  /customers/{customer_id}/wishlists/summary
+
+GET  /customers/{customer_id}/wishlists
+POST /customers/{customer_id}/wishlists
+PUT  /customers/{customer_id}/wishlists/{group_id}
+DELETE /customers/{customer_id}/wishlists/{group_id}
+GET  /customers/{customer_id}/wishlists/{group_id}/items
+PUT  /customers/{customer_id}/wishlists/items/pid/{product_id}
+DELETE /customers/{customer_id}/wishlists/items/pid/{product_id}
 GET  /customers/{customer_id}/credits/balance
 
 GET  /customers/{customer_id}/cart
@@ -160,8 +169,64 @@ GET/POST /checkout/...
 GET/POST /order/...
 ```
 
-No login, customer-account, cart mutation, checkout, payment, or other
-state-changing operation was attempted.
+The CLI implements login, token refresh, and wishlist routes from the Android
+client. Cart mutation, checkout, payment, orders, and other customer actions
+remain out of scope. Wishlist writes are only sent after an explicit user
+confirmation and the CLI's `--confirm` flag.
+
+### Android login flow
+
+The installed app uses the Android-shaped request below against
+`v-1-16-0`:
+
+```json
+{
+  "platform": "android",
+  "sections": [{
+    "section_id": "customer_login",
+    "fields": [
+      {"field_id": "email", "value": "..."},
+      {"field_id": "password", "value": "..."},
+      {"field_id": "captcha", "value": ""}
+    ]
+  }]
+}
+```
+
+When the response contains `two_step_verification`, the second request keeps
+the first response's `__cf_bm` cookie and adds:
+
+```json
+{"section_id":"two_step_verification","fields":[
+  {"field_id":"otp","value":"..."},
+  {"field_id":"trust_this_device","value":true}
+]}
+```
+
+Successful `auth_info` contains `jwt`, `id_token`, `refresh_token`,
+`csrf_token`, `tracking_id`, `customer_id`, and device-related fields. Refresh
+rotates the refresh token, so the CLI replaces the keyring session atomically
+after a successful refresh. No real credentials or captured tokens belong in
+this repository.
+
+### Android wishlist payloads
+
+The installed app's request models show these payloads:
+
+```text
+POST /customers/{customer_id}/wishlists
+{"name":"My list"}
+
+PUT /customers/{customer_id}/wishlists/items/pid/{product_id}
+{"reset":false,"groups":[{group_id}]}
+
+PUT /customers/{customer_id}/wishlists/{group_id}
+{"name":"Renamed list"}
+```
+
+The CLI resolves a PLID through product details to obtain `product_id` before
+using the `pid` wishlist route. It never treats a TSIN or product ID supplied
+as a bare detail-command reference as a PLID.
 
 ### Public/read-only catalogue route families observed
 
@@ -375,18 +440,17 @@ variant filter.
 | Adjustable Laptop Stand | `rating=5` | 814 five-star reviews |
 | Adjustable Laptop Stand | `rating=1` | 15 one-star reviews |
 
-## Recommended next work
+## Implementation notes
 
-1. Build a read-only client around search, product details, product cards, and
-   reviews.
-2. Preserve `PLID`, `product_id`, and `tsin` as separate identifiers.
-3. Read review filter definitions dynamically for each product.
-4. Page reviews with `page` and stop at `page_info.total_pages`.
-5. Store the review distribution from product details rather than counting only
-   the current page.
-6. Avoid storing `customer_id`, `signature`, or reviewer names unless needed.
-7. Do not automate login, cart changes, checkout, payment, or order actions as
-   part of catalogue research.
+1. The Go CLI preserves `PLID`, `product_id`, and `tsin` as separate
+   identifiers and uses the native OS keyring for the mobile session.
+2. The browser login page is bound to loopback only; credentials are posted to
+   the CLI, never exposed as command arguments or chat output.
+3. Review filters remain dynamic and review pages are zero-based.
+4. Reviewer names, customer IDs, and signatures are excluded from normalized
+   output.
+5. Cart changes, checkout, payment, orders, and other customer actions remain
+   out of scope.
 
 ## Sources
 
