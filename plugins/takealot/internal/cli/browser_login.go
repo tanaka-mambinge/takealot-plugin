@@ -52,8 +52,8 @@ body{margin:0;background:var(--canvas);color:var(--ink);font:16px/1.55 system-ui
 .page{min-height:100dvh;display:grid;place-items:center;padding:24px 16px}
 .login-shell{width:min(100%,430px)}
 .brand-banner{display:flex;align-items:center;justify-content:center;min-height:78px;padding:16px 22px;background:var(--blue);border-radius:var(--radius) var(--radius) 0 0;color:#fff}
-.brand-lockup{display:flex;align-items:center;min-width:0;padding:9px 13px;background:#fff;border-radius:10px}
-.brand-lockup img{display:block;width:min(224px,100%);height:auto}
+.brand-lockup{display:flex;align-items:center;justify-content:center;width:min(100%,280px);min-width:0;padding:9px 13px;background:#fff;border-radius:10px}
+.brand-lockup img{display:block;width:224px;max-width:100%;height:auto}
 .panel{padding:30px;background:var(--surface);border:1px solid rgba(24,35,56,.1);border-top:0;border-radius:0 0 var(--radius) var(--radius);box-shadow:0 18px 42px rgba(24,35,56,.12)}
 h1{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.025em;font-weight:650}
 .intro{margin:10px 0 24px;color:var(--muted);font-size:16px;line-height:1.55}
@@ -74,8 +74,14 @@ button:hover{background:var(--blue-dark)}
 button:active{transform:translateY(1px)}
 button:focus-visible{outline:2px solid var(--blue-dark);outline-offset:3px}
 button:disabled{background:#8bb9d5;cursor:wait}
-.security-note{margin:24px 0 0;padding-top:18px;border-top:1px solid rgba(24,35,56,.1);color:var(--muted);font-size:13px;line-height:1.5}
-.security-note strong{display:block;margin-bottom:3px;color:var(--ink);font-weight:650}
+.password-control{position:relative}
+.password-control input{padding-right:58px}
+.password-toggle{position:absolute;top:0;right:0;display:grid;width:48px;min-height:48px;margin:0;padding:0;place-items:center;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.password-toggle:hover{background:#eef7fc;color:var(--blue-dark)}
+.password-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:-4px}
+.password-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.password-toggle[aria-pressed=true] .eye-open{display:none}
+.password-toggle[aria-pressed=false] .eye-slash{display:none}
 .success-panel{text-align:center}
 .success-mark{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 18px;border-radius:50%;background:#effaf3;color:var(--success);font-size:28px;font-weight:700}
 .close-note{margin:12px 0 0;color:var(--muted)}
@@ -87,14 +93,14 @@ button:disabled{background:#8bb9d5;cursor:wait}
 <div class="panel{{if .Success}} success-panel{{end}}">
 {{if not .Success}}<h1 id="page-title">Connect your Takealot account</h1><p class="intro">Sign in once to let the Takealot shopping plugin research products and manage your wishlist.</p>
 {{if .Message}}<p class="status {{if .Error}}error{{else}}ok{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="polite">{{.Message}}</p>{{end}}
-<form method="post" action="{{.Path}}?token={{.Token}}" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').setAttribute('aria-busy','true');this.querySelector('button').textContent='Signing in…';">
+<form method="post" action="{{.Path}}?token={{.Token}}" onsubmit="const submit=this.querySelector('button[type=submit]');submit.disabled=true;submit.setAttribute('aria-busy','true');submit.textContent='Signing in…';">
 <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" value="{{.Email}}" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></div>
-<div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" {{if not .OTPRequired}}required{{end}}></div>
+<div class="field"><label for="password">Password</label><div class="password-control"><input id="password" name="password" type="password" autocomplete="current-password" {{if not .OTPRequired}}required{{end}}><button id="toggle-password" class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg><svg class="eye-slash" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18"></path><path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6 0 9.5 7 9.5 7a17.5 17.5 0 0 1-3.1 3.6M6.2 6.2C3.9 7.8 2.5 12 2.5 12s3.5 7 9.5 7c1.4 0 2.7-.3 3.8-.8"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg></button></div></div>
 {{if .OTPRequired}}<p class="otp-note">Takealot requested a one-time password. Your password is retained only in this running CLI process for this login attempt, so you can leave the password field blank when submitting the code.</p>{{end}}
 <div class="field"><label for="otp">One-time password <span class="hint">(only if requested)</span></label><input id="otp" name="otp" inputmode="numeric" autocomplete="one-time-code"></div>
 <div class="checkbox-row"><input id="trust-device" name="trust_device" type="checkbox" value="true" checked><label for="trust-device">Trust this device for future shopping requests</label></div>
 <button type="submit">{{if .OTPRequired}}Verify and finish{{else}}Sign in securely{{end}}</button></form>
-<p class="security-note"><strong>Local and private</strong>This page stays on your computer. Your password goes directly to Takealot, and the plugin stores only a session token in your OS keyring.</p>
+<script>(function(){var toggle=document.getElementById('toggle-password');var input=document.getElementById('password');if(!toggle||!input)return;toggle.addEventListener('click',function(){var show=input.type==='password';input.type=show?'text':'password';toggle.setAttribute('aria-pressed',String(show));toggle.setAttribute('aria-label',show?'Hide password':'Show password');});})();</script>
 {{else}}<div class="success-mark" aria-hidden="true">✓</div><h1 id="page-title">You’re signed in</h1><p class="intro">Your Takealot session is saved securely for the plugin.</p><p class="close-note">You can close this tab and return to your shopping assistant.</p>{{end}}
 </div></section></main></body></html>`))
 

@@ -22,8 +22,10 @@ func TestWriteLoginPageEmbedsWordmarkAndEscapesStatus(t *testing.T) {
 		`base64,`,
 		`Connect your Takealot account`,
 		`Takealot shopping plugin`,
-		`Local and private`,
 		`autocomplete="username"`,
+		`id="toggle-password"`,
+		`aria-label="Show password"`,
+		`aria-controls="password"`,
 		`role="alert"`,
 		`&lt;script&gt;alert(&#34;no&#34;)&lt;/script&gt;`,
 	} {
@@ -34,8 +36,8 @@ func TestWriteLoginPageEmbedsWordmarkAndEscapesStatus(t *testing.T) {
 	if strings.Contains(body, `<script>alert("no")</script>`) {
 		t.Fatal("login page rendered an unescaped status message")
 	}
-	if strings.Contains(body, "Shopping assistant") || strings.Contains(body, "secure sign-in") {
-		t.Fatal("login page still renders the removed banner label")
+	if strings.Contains(body, "Local and private") || strings.Contains(body, "secure sign-in") {
+		t.Fatal("login page still renders removed reassurance copy")
 	}
 	if got := response.Header().Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("Cache-Control = %q, want no-store", got)
