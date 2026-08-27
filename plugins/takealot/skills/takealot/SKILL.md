@@ -7,6 +7,14 @@ description: Research Takealot products with catalogue data, images, reviews, an
 
 Use the `takealot` CLI and web research to help a user decide whether a product is worth considering. This skill is read-only: it may search the catalogue, inspect public product data, inspect public reviews, view product images, and research external sources. It must never log in, access customer accounts, add to cart, check out, pay, place an order, or change any Takealot state.
 
+## Source priority and availability boundaries
+
+Use the CLI as the primary source for all Takealot catalogue facts. After bootstrapping it, use the CLI first for Takealot search results, product identity, listed price, sale status, ratings, review counts, review text, product details, images, and canonical product links. Do not use web search snippets or a Takealot page as a substitute for CLI data, and do not reconstruct the API request yourself. Use web research after the CLI for Reddit, manufacturer documentation, independent reviews, and other external evidence.
+
+If the CLI cannot run, explain the failure and do not claim a Takealot price, rating, product detail, or listing status from web results alone. External research may still be labelled separately when useful.
+
+Do not give an availability verdict. Takealot availability, stock, delivery, shipping, and fulfilment can vary by delivery address, seller, region, and time. Never say that an item is “available”, “in stock”, “out of stock”, “unavailable”, or guaranteed to arrive. You may report the listed price and sale state returned by the CLI, with the date checked, but do not turn catalogue data into a location-specific availability claim.
+
 ## CLI bootstrap (required)
 
 The CLI is not installed when this plugin is installed. Before any Takealot research, always run the native launcher. It reuses the verified cached binary when it is current and only downloads a release binary when the cache is missing or a newer release is available.
@@ -49,7 +57,7 @@ Never construct a Takealot product URL from a title, PLID, product ID, TSIN, or 
 1. Resolve the product with `takealot product get <plid-or-url> --json`.
 2. Use the exact normalized `url` field returned by that command.
 3. Confirm that the URL contains the same PLID as the product being described and does not use a stale `/product/` route when the CLI has returned a canonical route without it.
-4. When page verification is available, request the canonical URL and confirm it is not a 404. A failed or blocked verification is not evidence that the product is unavailable; report the link as unverified instead.
+4. When page verification is available, request the canonical URL and confirm it is not a 404. A failed or blocked verification is not evidence about location-specific availability; report the link as unverified instead.
 
 Do not copy links from stale search snippets, old answers, API endpoints, image URLs, or browser history. If a URL returns 404, re-resolve it by PLID and replace it before responding. If no working product page can be confirmed, say so rather than giving the user a link likely to fail.
 
@@ -77,7 +85,7 @@ Lead with the answer and keep the first response light. For each shortlisted pro
 
 - Product name and a clickable Takealot link.
 - At least one visibly rendered local product image from `takealot product images`; show two or three when they add useful visual context.
-- Current price and currency, sale status when evident, stock status, and USD conversion only when requested.
+- Current listed price and currency, sale status when evident, and USD conversion only when requested.
 - A one-sentence explanation of why it fits the user's use case.
 - A small review snapshot: average rating, total count, compact 1–5-star distribution, and one positive plus one critical or recent review takeaway.
 
@@ -104,7 +112,7 @@ flowchart TD
 
 For a category request, search first and choose a small set of genuinely relevant candidates. For each serious candidate:
 
-1. Fetch product details and record PLID, product ID, TSIN, title, brand, price, stock, URL, seller, returns, warranty, specifications, description, bullets, variants, and gallery image URLs.
+1. Fetch product details and record PLID, product ID, TSIN, title, brand, listed price, URL, seller, returns, warranty, specifications, description, bullets, variants, and gallery image URLs. Do not report stock or availability.
 2. Run `takealot product images <plid-or-url> --limit 3 --json` and render the returned local image paths in the response. View several product images when image viewing is available. Note visible build quality, size, ports, controls, included accessories, packaging, fit, and any mismatch between the images and the written description. Do not infer hidden technical properties from an image.
 3. Read the description, product attributes, warranty language, seller information, and exchange/return information. Call out missing or ambiguous specifications.
 4. Record the overall average rating, total review count, and every 1–5-star distribution bucket. A high average with few reviews is weaker evidence than a similar average with a large count.
@@ -155,6 +163,6 @@ Use these sections when enough evidence is available. Keep the default answer co
 - Confidence and caveats
 - Alternatives when useful
 
-Mention the dates of important reviews and external sources. Prices, stock, delivery estimates, and promotions can change. Flag conflicting evidence, suspiciously low review counts, variant differences, repeated complaints, missing warranty details, and claims that cannot be verified. Never present a reviewer's identity or private customer identifier.
+Mention the dates of important reviews and external sources. Prices, promotions, and listing details can change. Do not make availability or delivery claims. Flag conflicting evidence, suspiciously low review counts, variant differences, repeated complaints, missing warranty details, and claims that cannot be verified. Never present a reviewer's identity or private customer identifier.
 
 Read [the shopping research guide](references/shopping-research.md) when you need evidence-handling rules or concise brief examples. Use the CLI as the interface to Takealot; do not reconstruct API requests yourself when a CLI command provides the needed data.

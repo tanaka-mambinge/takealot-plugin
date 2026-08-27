@@ -7,7 +7,7 @@ The goal is not to repeat a star rating. The goal is to give the user a compact,
 Make the result easy to scan. Lead with the shortlist or recommendation, then use compact product cards rather than an information-heavy catalogue dump. A useful default card looks like this:
 
 ```markdown
-### Product name — R price | In stock
+### Product name — R price
 
 ![Product image](image-url)
 
@@ -17,13 +17,13 @@ Review snapshot: 4.6/5 from 120 reviews. Positives: quiet and easy to assemble. 
 [View it on Takealot](takealot-url)
 ```
 
-Show at least one local product image per shortlisted product in chat. Always run `takealot product images <plid> --limit 3 --json` and render an absolute `local_path`; this avoids remote CDN preview failures. Add a second or third gallery image when appearance, size, ports, accessories, or other visual details affect the decision. Place the image directly below the product name/link, before the text evidence. Include the price, sale status when known, stock status, direct link, and a short review snapshot. Mention one or two representative positive, critical, or recent review takeaways; do not paste full reviews or every specification into the first response. Keep the initial shortlist to roughly three to five products when comparing options, and offer deeper details on request. If local image download or rendering is unavailable, keep the product card useful with the Takealot link and state that the image preview could not be displayed; do not claim that an image was shown.
+Show at least one local product image per shortlisted product in chat. Always run `takealot product images <plid> --limit 3 --json` and render an absolute `local_path`; this avoids remote CDN preview failures. Add a second or third gallery image when appearance, size, ports, accessories, or other visual details affect the decision. Place the image directly below the product name/link, before the text evidence. Include the listed price, sale status when known, direct link, and a short review snapshot. Do not give an availability, stock, shipping, or delivery verdict because those can vary by location and fulfilment context. Mention one or two representative positive, critical, or recent review takeaways; do not paste full reviews or every specification into the first response. Keep the initial shortlist to roughly three to five products when comparing options, and offer deeper details on request. If local image download or rendering is unavailable, keep the product card useful with the Takealot link and state that the image preview could not be displayed; do not claim that an image was shown.
 
 ## Workflow
 
 1. Clarify the user’s use case, budget, must-have features, location, and tolerance for trade-offs.
 2. Search Takealot and shortlist products that satisfy the request. Keep the search query and result date in mind.
-3. Inspect each candidate’s gallery, description, specifications, warranty, seller, returns, stock, and current price.
+3. Inspect each candidate’s gallery, description, specifications, warranty, seller, returns, and current listed price.
 4. Capture the total review count and complete five-bucket distribution before sampling reviews.
 5. Read representative five-star, one-star, and latest reviews. Sample more than one page when the count is large or themes conflict.
 6. Search the exact model externally. Check manufacturer documentation, independent testing, reputable publications, direct Reddit discussions, and credible retailer information.
@@ -57,7 +57,7 @@ When web verification is available, request the canonical product page before pu
 - Manufacturer documentation is strongest for specifications and compatibility. Independent testing is strongest for measured performance. Reputable publications can provide useful comparative context.
 - Compare reviews within the same variant. A colour, size, generation, bundle, or seller change can make evidence non-comparable.
 - Note review count and distribution. A 4.8 average from 12 reviews deserves lower confidence than a 4.6 average from 1,000 reviews.
-- Report the date for time-sensitive prices, stock, delivery, promotions, reviews, and external articles.
+- Report the date for time-sensitive prices, promotions, reviews, and external articles. Do not turn those observations into availability or delivery claims.
 - Flag contradictions, missing specifications, suspiciously low counts, repeated failure modes, warranty ambiguity, and product images that do not establish a claimed feature.
 
 ## Interpreting negative reviews
@@ -83,7 +83,7 @@ Do not output reviewer names, customer IDs, signatures, emails, or other persona
 
 ```text
 Product overview
-  What it is, current Takealot price/stock, variant, rating, review count, and date checked.
+  What it is, current listed Takealot price, sale status, variant, rating, review count, and date checked. Do not give an availability verdict.
 
 What the product appears good at
   The use cases supported by product facts and repeated positive evidence.
