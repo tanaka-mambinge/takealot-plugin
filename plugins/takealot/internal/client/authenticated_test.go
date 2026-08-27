@@ -36,7 +36,8 @@ func TestWishlistRoutesAndProductResolution(t *testing.T) {
 			if request.Method == http.MethodPut {
 				var body map[string]any
 				_ = json.NewDecoder(request.Body).Decode(&body)
-				if body["reset"] != false || len(body["groups"].([]any)) != 1 {
+				groups := body["groups"].([]any)
+				if body["reset"] != false || len(groups) != 1 || groups[0].(float64) != 7 {
 					t.Errorf("unexpected add body: %#v", body)
 				}
 			}

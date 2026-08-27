@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -173,14 +174,21 @@ func (c *AuthenticatedClient) AddProductToWishlist(ctx context.Context, groupID,
 		return models.WishlistAction{}, err
 	}
 	if product.ProductID == 0 {
-		return models.WishlistAction{}, errors.New("product details did not contain a product ID required by the mobile wishlist API")
+		product, err = c.resolveWishlistProductID(ctx, product)
+		if err != nil {
+			return models.WishlistAction{}, err
+		}
 	}
 	customerID, err := c.customerID()
 	if err != nil {
 		return models.WishlistAction{}, err
 	}
 	path := "/customers/" + url.PathEscape(customerID) + "/wishlists/items/pid/" + strconv.FormatInt(product.ProductID, 10)
-	body := map[string]any{"reset": false, "groups": []string{groupID}}
+	groupNumber, err := strconv.ParseInt(groupID, 10, 64)
+	if err != nil || groupNumber <= 0 {
+		return models.WishlistAction{}, errors.New("wishlist group-id must be a positive numeric ID")
+	}
+	body := map[string]any{"reset": false, "groups": []int64{groupNumber}}
 	if err := c.manager.DoJSON(ctx, http.MethodPut, path, body, nil); err != nil {
 		return models.WishlistAction{}, err
 	}
@@ -193,7 +201,10 @@ func (c *AuthenticatedClient) RemoveProductFromWishlists(ctx context.Context, re
 		return models.WishlistAction{}, err
 	}
 	if product.ProductID == 0 {
-		return models.WishlistAction{}, errors.New("product details did not contain a product ID required by the mobile wishlist API")
+		product, err = c.resolveWishlistProductID(ctx, product)
+		if err != nil {
+			return models.WishlistAction{}, err
+		}
 	}
 	customerID, err := c.customerID()
 	if err != nil {
@@ -204,6 +215,26 @@ func (c *AuthenticatedClient) RemoveProductFromWishlists(ctx context.Context, re
 		return models.WishlistAction{}, err
 	}
 	return models.WishlistAction{Action: "remove", Product: &product.ProductSummary, Completed: true}, nil
+}
+
+func (c *AuthenticatedClient) resolveWishlistProductID(ctx context.Context, product models.ProductDetails) (models.ProductDetails, error) {
+	if strings.TrimSpace(product.Title) == "" {
+		return models.ProductDetails{}, errors.New("product details did not contain a product ID required by the mobile wishlist API")
+	}
+	results, err := c.catalogue.Search(ctx, product.Title, 50)
+	if err != nil {
+		return models.ProductDetails{}, fmt.Errorf("resolve product ID through Takealot search: %w", err)
+	}
+	for _, candidate := range results.Results {
+		if candidate.PLID == product.PLID && candidate.ProductID != 0 {
+			product.ProductID = candidate.ProductID
+			if product.TSIN == 0 {
+				product.TSIN = candidate.TSIN
+			}
+			return product, nil
+		}
+	}
+	return models.ProductDetails{}, errors.New("product details did not contain a product ID required by the mobile wishlist API, and Takealot search could not resolve it")
 }
 
 func (c *AuthenticatedClient) customerID() (string, error) {
