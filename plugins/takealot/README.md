@@ -2,7 +2,7 @@
 
 A Codex-compatible, read-only shopping assistant plugin with a cross-platform Go CLI. The agent-facing behavior lives in [`skills/takealot/SKILL.md`](skills/takealot/SKILL.md); this README contains implementation and API notes for developers.
 
-The plugin uses the Takealot wordmark in `assets/takealot-logo.svg` for both its logo and composer icon. The asset is the Takealot logo published on [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Takealot_logo.svg); Takealot branding remains the property of Takealot.
+The plugin uses the downloaded Takealot favicon in `assets/takealot-icon.png` for both its logo and composer icon. Takealot branding remains the property of Takealot.
 
 ## CLI
 
