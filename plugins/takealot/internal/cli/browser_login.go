@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"crypto/rand"
+	_ "embed"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -23,6 +24,12 @@ import (
 
 const loginPagePath = "/takealot-login"
 
+// takealotWordmark is embedded so the local login page remains self-contained.
+// The asset is the Takealot wordmark, not the square favicon/icon.
+//
+//go:embed assets/takealot-wordmark.svg
+var takealotWordmark []byte
+
 type loginPageData struct {
 	Token       string
 	Path        string
@@ -32,21 +39,64 @@ type loginPageData struct {
 	Error       bool
 	Success     bool
 	CustomerID  string
+	LogoDataURI template.URL
 }
 
 var loginPageTemplate = template.Must(template.New("login").Parse(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Takealot CLI login</title>
-<style>body{font:16px system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;color:#182338}label{display:block;margin:1rem 0 .35rem}input{box-sizing:border-box;width:100%;padding:.7rem;border:1px solid #abb4c4;border-radius:.4rem;font-size:1rem}button{margin-top:1.2rem;padding:.7rem 1rem;background:#1079bf;color:#fff;border:0;border-radius:.4rem;font-size:1rem}.error{color:#a12626}.ok{color:#176b38}</style></head>
-<body><h1>Sign in to Takealot</h1><p>Credentials are sent only to this local CLI page and then directly to Takealot's mobile API. Tokens are saved in your OS keyring and are not shown here.</p>
-{{if .Message}}<p class="{{if .Error}}error{{else}}ok{{end}}">{{.Message}}</p>{{end}}
-{{if not .Success}}<form method="post" action="{{.Path}}?token={{.Token}}">
-<label for="email">Email</label><input id="email" name="email" type="email" value="{{.Email}}" autocomplete="username" required>
-<label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" {{if not .OTPRequired}}required{{end}}>
-{{if .OTPRequired}}<p>Takealot requires a one-time password. Your password is retained only in this running CLI process for this login attempt; leave the password field blank to reuse it.</p>{{end}}
-<label for="otp">One-time password (only if Takealot asks for it)</label><input id="otp" name="otp" inputmode="numeric" autocomplete="one-time-code">
-<label><input name="trust_device" type="checkbox" value="true" checked> Trust this device</label>
-<button type="submit">Sign in</button></form>{{else}}<p>You can close this tab and return to the CLI.</p>{{end}}
-</body></html>`))
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1079bf"><title>Sign in to Takealot</title>
+<style>
+:root{color-scheme:light;--blue:#1079bf;--blue-dark:#075a91;--ink:#182338;--muted:#5d6b7c;--line:#d7e1ea;--canvas:#f3f8fb;--surface:#fff;--danger:#a12626;--success:#176b38;--radius:18px}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--canvas);color:var(--ink);font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.page{min-height:100dvh;display:grid;place-items:center;padding:24px 16px}
+.login-shell{width:min(100%,430px)}
+.brand-banner{display:flex;align-items:center;justify-content:center;min-height:78px;padding:16px 22px;background:var(--blue);border-radius:var(--radius) var(--radius) 0 0;color:#fff}
+.brand-lockup{display:flex;align-items:center;min-width:0;padding:9px 13px;background:#fff;border-radius:10px}
+.brand-lockup img{display:block;width:min(224px,100%);height:auto}
+.panel{padding:30px;background:var(--surface);border:1px solid rgba(24,35,56,.1);border-top:0;border-radius:0 0 var(--radius) var(--radius);box-shadow:0 18px 42px rgba(24,35,56,.12)}
+h1{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.025em;font-weight:650}
+.intro{margin:10px 0 24px;color:var(--muted);font-size:16px;line-height:1.55}
+.field{margin-top:17px}
+label{display:block;margin-bottom:7px;font-size:14px;font-weight:650}
+input[type=email],input[type=password],input[name=otp]{display:block;width:100%;min-height:48px;padding:11px 13px;border:1px solid #b8c5d2;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:16px;transition:border-color .15s ease,box-shadow .15s ease}
+input[type=email]:focus,input[type=password]:focus,input[name=otp]:focus{border-color:var(--blue);outline:2px solid var(--blue);outline-offset:-1px}
+.hint{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
+.otp-note{margin:16px 0 0;padding:12px 14px;border-left:3px solid var(--blue);background:#eef7fc;color:#38536b;font-size:14px;line-height:1.5}
+.checkbox-row{display:flex;align-items:flex-start;gap:10px;margin-top:18px;font-weight:400;font-size:14px;color:var(--muted)}
+.checkbox-row input{width:18px;height:18px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--blue)}
+.checkbox-row label{margin:0;font-weight:400}
+.status{margin:20px 0 0;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45}
+.status.error{background:#fff1f0;color:var(--danger)}
+.status.ok{background:#effaf3;color:var(--success)}
+button{display:block;width:100%;min-height:50px;margin-top:24px;padding:12px 16px;border:0;border-radius:10px;background:var(--blue);color:#fff;font:inherit;font-weight:650;cursor:pointer;transition:background .15s ease,transform .05s ease}
+button:hover{background:var(--blue-dark)}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--blue-dark);outline-offset:3px}
+button:disabled{background:#8bb9d5;cursor:wait}
+.security-note{margin:24px 0 0;padding-top:18px;border-top:1px solid rgba(24,35,56,.1);color:var(--muted);font-size:13px;line-height:1.5}
+.security-note strong{display:block;margin-bottom:3px;color:var(--ink);font-weight:650}
+.success-panel{text-align:center}
+.success-mark{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 18px;border-radius:50%;background:#effaf3;color:var(--success);font-size:28px;font-weight:700}
+.close-note{margin:12px 0 0;color:var(--muted)}
+@media (max-width:420px){.page{padding:12px 10px}.brand-banner{padding:14px 16px}.brand-lockup img{width:min(224px,100%)}.panel{padding:24px 18px}h1{font-size:26px}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style></head>
+<body><main class="page"><section class="login-shell" aria-labelledby="page-title">
+<header class="brand-banner"><div class="brand-lockup"><img src="{{.LogoDataURI}}" width="224" height="46" alt="Takealot"></div></header>
+<div class="panel{{if .Success}} success-panel{{end}}">
+{{if not .Success}}<h1 id="page-title">Connect your Takealot account</h1><p class="intro">Sign in once to let the Takealot shopping plugin research products and manage your wishlist.</p>
+{{if .Message}}<p class="status {{if .Error}}error{{else}}ok{{end}}" role="{{if .Error}}alert{{else}}status{{end}}" aria-live="polite">{{.Message}}</p>{{end}}
+<form method="post" action="{{.Path}}?token={{.Token}}" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').setAttribute('aria-busy','true');this.querySelector('button').textContent='Signing in…';">
+<div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" value="{{.Email}}" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></div>
+<div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" {{if not .OTPRequired}}required{{end}}></div>
+{{if .OTPRequired}}<p class="otp-note">Takealot requested a one-time password. Your password is retained only in this running CLI process for this login attempt, so you can leave the password field blank when submitting the code.</p>{{end}}
+<div class="field"><label for="otp">One-time password <span class="hint">(only if requested)</span></label><input id="otp" name="otp" inputmode="numeric" autocomplete="one-time-code"></div>
+<div class="checkbox-row"><input id="trust-device" name="trust_device" type="checkbox" value="true" checked><label for="trust-device">Trust this device for future shopping requests</label></div>
+<button type="submit">{{if .OTPRequired}}Verify and finish{{else}}Sign in securely{{end}}</button></form>
+<p class="security-note"><strong>Local and private</strong>This page stays on your computer. Your password goes directly to Takealot, and the plugin stores only a session token in your OS keyring.</p>
+{{else}}<div class="success-mark" aria-hidden="true">✓</div><h1 id="page-title">You’re signed in</h1><p class="intro">Your Takealot session is saved securely for the plugin.</p><p class="close-note">You can close this tab and return to your shopping assistant.</p>{{end}}
+</div></section></main></body></html>`))
 
 func readPasswordStdin(command *cobra.Command) (string, string, error) {
 	data, err := io.ReadAll(command.InOrStdin())
@@ -175,6 +225,7 @@ func writeLoginPage(writer http.ResponseWriter, status int, data loginPageData) 
 	writer.Header().Set("Cache-Control", "no-store")
 	writer.WriteHeader(status)
 	data.Path = loginPagePath
+	data.LogoDataURI = template.URL("data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString(takealotWordmark))
 	_ = loginPageTemplate.Execute(writer, data)
 }
 
