@@ -18,9 +18,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: plugins/takealot/go.mod
 
       - name: Test
+        working-directory: plugins/takealot
         run: go test ./...
 
       - name: Build release assets
@@ -28,6 +29,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
           COMMIT: ${{ github.sha }}
+        working-directory: plugins/takealot
         run: |
           set -euo pipefail
           if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -62,4 +64,4 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" dist/* --title "Takealot CLI ${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" plugins/takealot/dist/* --title "Takealot CLI ${{ github.ref_name }}" --generate-notes

@@ -1,0 +1,22 @@
+{
+  "name": "takealot-plugins",
+  "interface": {
+    "displayName": "Takealot Plugins"
+  },
+  "plugins": [
+    {
+      "name": "takealot",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/tanaka-mambinge/takealot-plugin",
+        "path": "./plugins/takealot",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Shopping"
+    }
+  ]
+}
