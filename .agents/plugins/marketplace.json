@@ -10,7 +10,7 @@
         "source": "git-subdir",
         "url": "https://github.com/tanaka-mambinge/takealot-plugin",
         "path": "./plugins/takealot",
-        "ref": "main"
+        "ref": "master"
       },
       "policy": {
         "installation": "AVAILABLE",
