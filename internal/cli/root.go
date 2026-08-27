@@ -27,11 +27,12 @@ func newRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "takealot",
 		Short:         "Research Takealot products",
+		Version:       Version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().BoolVar(&options.json, "json", false, "output normalized JSON")
-	root.AddCommand(newSearchCommand(), newProductCommand())
+	root.AddCommand(newSearchCommand(), newProductCommand(), newVersionCommand())
 	return root
 }
 

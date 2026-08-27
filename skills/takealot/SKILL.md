@@ -7,16 +7,37 @@ description: Research Takealot products with catalogue data, images, reviews, an
 
 Use the `takealot` CLI and web research to help a user decide whether a product is worth considering. This skill is read-only: it may search the catalogue, inspect public product data, inspect public reviews, view product images, and research external sources. It must never log in, access customer accounts, add to cart, check out, pay, place an order, or change any Takealot state.
 
+## CLI bootstrap (required)
+
+The CLI is not installed when this plugin is installed. Before any Takealot research, always download the latest release binary for the host operating system and CPU architecture.
+
+Use the bundled native launcher scripts:
+
+```bash
+# Linux or macOS; replace <plugin-root> with the installed plugin directory.
+TAKEALOT_BIN="$(sh <plugin-root>/scripts/download_cli.sh)"
+```
+
+```powershell
+# Windows PowerShell; replace <plugin-root> with the installed plugin directory.
+$TAKEALOT_BIN = & powershell -NoProfile -ExecutionPolicy Bypass -File <plugin-root>\scripts\download_cli.ps1
+```
+
+The launcher downloads the matching asset from the latest public GitHub Release, downloads `checksums.txt`, verifies SHA-256, atomically refreshes the cached executable, and prints its absolute path. Use that absolute path for every CLI command in the current task. Do not assume `takealot` is on `PATH`, do not install it globally, and do not use Python, Go, `jq`, `gh`, or a package manager on the user's machine. The hidden cache is `~/.takealot/bin/takealot` on Unix and `%USERPROFILE%\.takealot\bin\takealot.exe` on Windows.
+
+If the launcher fails, report the platform, download, release, or checksum error clearly and stop the Takealot CLI portion of the task. Do not bypass checksum verification, use an unverified binary, reconstruct the Takealot API request yourself, or pretend that catalogue research was completed.
+
 ## CLI commands
 
 ```bash
-takealot search "wireless earbuds" --limit 10 --json
-takealot product get 66383997 --json
-takealot product get "https://www.takealot.com/.../PLID66383997" --json
-takealot product images 66383997 --limit 1 --json
-takealot product reviews 66383997 --rating 5 --sort helpful --page 0 --json
-takealot product reviews 66383997 --rating 1 --sort latest --json
-takealot product reviews 66383997 --sort latest --page 0 --variant Black --json
+"$TAKEALOT_BIN" version --json
+"$TAKEALOT_BIN" search "wireless earbuds" --limit 10 --json
+"$TAKEALOT_BIN" product get 66383997 --json
+"$TAKEALOT_BIN" product get "https://www.takealot.com/.../PLID66383997" --json
+"$TAKEALOT_BIN" product images 66383997 --limit 1 --json
+"$TAKEALOT_BIN" product reviews 66383997 --rating 5 --sort helpful --page 0 --json
+"$TAKEALOT_BIN" product reviews 66383997 --rating 1 --sort latest --json
+"$TAKEALOT_BIN" product reviews 66383997 --sort latest --page 0 --variant Black --json
 ```
 
 Use PLIDs or full Takealot product URLs for detail and review commands. Keep PLID, product ID, and TSIN distinct; do not guess which identifier a bare number represents. Default output is human-readable; `--json` is normalized JSON and intentionally omits reviewer names, customer IDs, and signatures.

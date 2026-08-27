@@ -12,6 +12,9 @@ takealot product images 66383997 --limit 1 --json
 takealot product reviews 66383997 --rating 5 --sort helpful --page 0 --json
 takealot product reviews 66383997 --rating 1 --sort latest --json
 takealot product reviews 66383997 --sort latest --page 0 --variant Black --json
+takealot version
+takealot version --json
+takealot --version
 ```
 
 The CLI emits human-readable output by default and stable normalized JSON with `--json`. It accepts numeric PLIDs, `PLID123`, and Takealot product URLs. Product IDs and TSINs remain separate fields and are not accepted as ambiguous product references.
@@ -21,6 +24,36 @@ Product URLs are normalized to Takealot’s current canonical route. Consumers s
 `takealot product images` downloads up to 10 gallery images for local rendering. By default, files are stored in the hidden platform-independent cache directory `~/.takealot/images/<PLID>` using Go’s user-home and filepath APIs. On Windows, the default directories are also marked with the Windows Hidden attribute. Use `--dir` to select another directory. JSON output includes the absolute cache directory, original image URL, local path, content type, and byte count. The command only downloads image URLs returned by Takealot product details and keeps each response below 16 MiB.
 
 V1 is intentionally read-only. There are no credentials, persistent authentication, customer-account, cart, checkout, payment, order, or other state-changing operations.
+
+## Release and agent bootstrap
+
+The CLI is not installed as part of the plugin. The Takealot skill refreshes the latest release binary before doing research by using the native launcher for the host platform:
+
+- Linux/macOS: `scripts/download_cli.sh`, using `uname`, `curl`, `mktemp`, `awk`, and `sha256sum` or `shasum`.
+- Windows: `scripts/download_cli.ps1`, using PowerShell's `Invoke-WebRequest` and `Get-FileHash`.
+
+The launcher downloads the stable asset for the host OS/architecture from `tanaka-mambinge/takealot-plugin` and verifies `checksums.txt`. It stores the executable in a hidden user-scoped cache without changing `PATH`:
+
+```text
+Unix:    ~/.takealot/bin/takealot
+Windows: %USERPROFILE%\.takealot\bin\takealot.exe
+```
+
+No Python, Go runtime, `jq`, `gh`, package manager, or global installation is required on the user's machine. If a download or checksum fails, the skill reports the failure and does not fall back to direct API calls.
+
+GitHub Actions publishes the following assets when a matching semver tag is pushed:
+
+```text
+takealot_linux_amd64
+takealot_linux_arm64
+takealot_darwin_amd64
+takealot_darwin_arm64
+takealot_windows_amd64.exe
+takealot_windows_arm64.exe
+checksums.txt
+```
+
+To publish a release, update the plugin version, commit the change, and push a matching tag such as `v0.1.0`. The workflow runs tests, builds all targets with embedded version metadata, generates SHA-256 checksums, and creates the GitHub Release.
 
 ## API endpoint map
 
