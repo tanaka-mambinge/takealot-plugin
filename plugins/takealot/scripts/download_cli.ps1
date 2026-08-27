@@ -20,10 +20,60 @@ if ([string]::IsNullOrWhiteSpace($cacheDir)) {
 $null = New-Item -ItemType Directory -Force -Path $cacheDir
 $null = & attrib +h $cacheDir 2>$null
 
+$target = Join-Path $cacheDir "takealot.exe"
+$versionFile = Join-Path $cacheDir "takealot.version"
+$cachedVersion = $null
+if ((Test-Path -LiteralPath $target -PathType Leaf) -and (Test-Path -LiteralPath $versionFile -PathType Leaf)) {
+    $cachedVersion = (Get-Content -LiteralPath $versionFile | Select-Object -First 1).Trim()
+}
+
+function Get-LatestReleaseTag {
+    $location = $null
+    try {
+        $head = Invoke-WebRequest -Uri "$releaseBase/$asset" -Method Head -MaximumRedirection 0 -ErrorAction Stop
+        $location = $head.Headers.Location
+    }
+    catch {
+        if ($null -ne $_.Exception.Response) {
+            $location = $_.Exception.Response.Headers["Location"]
+        }
+        if ([string]::IsNullOrWhiteSpace($location)) {
+            throw "Unable to check the latest Takealot CLI release: $($_.Exception.Message)"
+        }
+    }
+
+    $segments = $location.TrimEnd("/") -split "/"
+    $downloadIndex = [Array]::IndexOf($segments, "download")
+    if (($downloadIndex -lt 0) -or (($downloadIndex + 1) -ge $segments.Length)) {
+        throw "Unable to determine the latest Takealot CLI release from the release redirect."
+    }
+    return $segments[$downloadIndex + 1]
+}
+
+$latestTag = $env:TAKEALOT_RELEASE_TAG
+if ([string]::IsNullOrWhiteSpace($latestTag)) {
+    try {
+        $latestTag = Get-LatestReleaseTag
+    }
+    catch {
+        if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not [string]::IsNullOrWhiteSpace($cachedVersion)) {
+            Write-Error "Could not check the latest Takealot CLI release; using cached $cachedVersion."
+            Write-Output $target
+            exit 0
+        }
+        throw
+    }
+}
+
+if ((Test-Path -LiteralPath $target -PathType Leaf) -and ($cachedVersion -eq $latestTag)) {
+    Write-Output $target
+    exit 0
+}
+
 $guid = [Guid]::NewGuid().ToString("N")
 $binaryTemp = Join-Path $cacheDir ".takealot-cli-$guid.tmp"
 $checksumsTemp = Join-Path $cacheDir ".takealot-checksums-$guid.tmp"
-$target = Join-Path $cacheDir "takealot.exe"
+$versionTemp = Join-Path $cacheDir ".takealot-version-$guid.tmp"
 
 try {
     Invoke-WebRequest -Uri "$releaseBase/$asset" -OutFile $binaryTemp
@@ -43,8 +93,10 @@ try {
     }
 
     Move-Item -Force -LiteralPath $binaryTemp -Destination $target
+    Set-Content -LiteralPath $versionTemp -Value $latestTag -NoNewline
+    Move-Item -Force -LiteralPath $versionTemp -Destination $versionFile
     Write-Output $target
 }
 finally {
-    Remove-Item -Force -ErrorAction SilentlyContinue -LiteralPath $binaryTemp, $checksumsTemp
+    Remove-Item -Force -ErrorAction SilentlyContinue -LiteralPath $binaryTemp, $checksumsTemp, $versionTemp
 }

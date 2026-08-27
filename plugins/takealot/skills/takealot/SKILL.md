@@ -9,7 +9,7 @@ Use the `takealot` CLI and web research to help a user decide whether a product 
 
 ## CLI bootstrap (required)
 
-The CLI is not installed when this plugin is installed. Before any Takealot research, always download the latest release binary for the host operating system and CPU architecture.
+The CLI is not installed when this plugin is installed. Before any Takealot research, always run the native launcher. It reuses the verified cached binary when it is current and only downloads a release binary when the cache is missing or a newer release is available.
 
 Use the bundled native launcher scripts:
 
@@ -23,7 +23,7 @@ TAKEALOT_BIN="$(sh <plugin-root>/scripts/download_cli.sh)"
 $TAKEALOT_BIN = & powershell -NoProfile -ExecutionPolicy Bypass -File <plugin-root>\scripts\download_cli.ps1
 ```
 
-The launcher downloads the matching asset from the latest public GitHub Release, downloads `checksums.txt`, verifies SHA-256, atomically refreshes the cached executable, and prints its absolute path. Use that absolute path for every CLI command in the current task. Do not assume `takealot` is on `PATH`, do not install it globally, and do not use Python, Go, `jq`, `gh`, or a package manager on the user's machine. The hidden cache is `~/.takealot/bin/takealot` on Unix and `%USERPROFILE%\.takealot\bin\takealot.exe` on Windows.
+The launcher performs a lightweight latest-release check, compares the release tag with its hidden cache marker, and only then downloads the matching asset and `checksums.txt`. New downloads are SHA-256 verified and atomically replace the cached executable; an up-to-date cache is returned immediately. Use the printed absolute path for every CLI command in the current task. Do not assume `takealot` is on `PATH`, do not install it globally, and do not use Python, Go, `jq`, `gh`, or a package manager on the user's machine. The hidden cache is `~/.takealot/bin/takealot` plus `~/.takealot/bin/takealot.version` on Unix and `%USERPROFILE%\.takealot\bin\takealot.exe` plus `%USERPROFILE%\.takealot\bin\takealot.version` on Windows.
 
 If the launcher fails, report the platform, download, release, or checksum error clearly and stop the Takealot CLI portion of the task. Do not bypass checksum verification, use an unverified binary, reconstruct the Takealot API request yourself, or pretend that catalogue research was completed.
 

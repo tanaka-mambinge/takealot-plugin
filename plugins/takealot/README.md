@@ -29,16 +29,16 @@ V1 is intentionally read-only. There are no credentials, persistent authenticati
 
 ## Release and agent bootstrap
 
-The CLI is not installed as part of the plugin. The Takealot skill refreshes the latest release binary before doing research by using the native launcher for the host platform:
+The CLI is not installed as part of the plugin. The Takealot skill runs the native launcher before doing research. The launcher checks the latest release tag and reuses the verified cached binary when it is current; it downloads and verifies a replacement only when the cache is missing or a newer release is available:
 
 - Linux/macOS: `scripts/download_cli.sh`, using `uname`, `curl`, `mktemp`, `awk`, and `sha256sum` or `shasum`.
 - Windows: `scripts/download_cli.ps1`, using PowerShell's `Invoke-WebRequest` and `Get-FileHash`.
 
-The launcher downloads the stable asset for the host OS/architecture from `tanaka-mambinge/takealot-plugin` and verifies `checksums.txt`. It stores the executable in a hidden user-scoped cache without changing `PATH`:
+The launcher checks the stable asset for the host OS/architecture from `tanaka-mambinge/takealot-plugin`, compares the release tag with a hidden cache marker, and verifies `checksums.txt` only when an update is needed. It stores the executable and release marker in a hidden user-scoped cache without changing `PATH`:
 
 ```text
-Unix:    ~/.takealot/bin/takealot
-Windows: %USERPROFILE%\.takealot\bin\takealot.exe
+Unix:    ~/.takealot/bin/takealot (+ takealot.version)
+Windows: %USERPROFILE%\.takealot\bin\takealot.exe (+ takealot.version)
 ```
 
 No Python, Go runtime, `jq`, `gh`, package manager, or global installation is required on the user's machine. If a download or checksum fails, the skill reports the failure and does not fall back to direct API calls.
