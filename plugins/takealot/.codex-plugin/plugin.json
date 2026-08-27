@@ -16,6 +16,9 @@
     "category": "Shopping",
     "capabilities": ["Search", "Research", "Read-only"],
     "websiteURL": "https://www.takealot.com/",
+    "brandColor": "#1079BF",
+    "composerIcon": "./assets/takealot-logo.svg",
+    "logo": "./assets/takealot-logo.svg",
     "defaultPrompt": [
       "Find and compare the best products on Takealot.",
       "Research this Takealot product, including positive and negative reviews.",
