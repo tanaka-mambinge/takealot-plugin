@@ -1,0 +1,25 @@
+{
+  "name": "takealot",
+  "version": "0.1.0",
+  "description": "A read-only Takealot shopping assistant for product research and balanced buying guidance.",
+  "author": {
+    "name": "t12e"
+  },
+  "license": "MIT",
+  "keywords": ["takealot", "shopping", "product-research", "reviews", "south-africa"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Takealot Shopping Assistant",
+    "shortDescription": "Research products before you buy",
+    "longDescription": "Search Takealot, inspect product details and images, read review distributions and review samples, and combine that with external research for balanced shopping guidance.",
+    "developerName": "t12e",
+    "category": "Shopping",
+    "capabilities": ["Search", "Research", "Read-only"],
+    "websiteURL": "https://www.takealot.com/",
+    "defaultPrompt": [
+      "Find and compare the best products on Takealot.",
+      "Research this Takealot product, including positive and negative reviews.",
+      "Give me a balanced shopping brief with Reddit and external sources."
+    ]
+  }
+}
