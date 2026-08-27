@@ -1,0 +1,22 @@
+{
+  "name": "takealot-plugins",
+  "owner": {
+    "name": "t12e",
+    "url": "https://github.com/tanaka-mambinge"
+  },
+  "plugins": [
+    {
+      "name": "takealot",
+      "source": "./plugins/takealot",
+      "displayName": "Takealot Shopping Assistant",
+      "description": "A read-only Takealot shopping assistant for product research and balanced buying guidance.",
+      "version": "0.1.0",
+      "author": {
+        "name": "t12e"
+      },
+      "license": "MIT",
+      "keywords": ["takealot", "shopping", "product-research", "reviews", "south-africa"],
+      "category": "shopping"
+    }
+  ]
+}

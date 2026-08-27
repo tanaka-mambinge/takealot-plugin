@@ -1,0 +1,13 @@
+{
+  "name": "takealot",
+  "displayName": "Takealot Shopping Assistant",
+  "version": "0.1.0",
+  "description": "A read-only Takealot shopping assistant for product research and balanced buying guidance.",
+  "author": {
+    "name": "t12e"
+  },
+  "homepage": "https://www.takealot.com/",
+  "repository": "https://github.com/tanaka-mambinge/takealot-plugin",
+  "license": "MIT",
+  "keywords": ["takealot", "shopping", "product-research", "reviews", "south-africa"]
+}
