@@ -10,7 +10,7 @@
       "source": "./plugins/takealot",
       "displayName": "Takealot Shopping Assistant",
       "description": "A read-only Takealot shopping assistant for product research and balanced buying guidance.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "t12e"
       },

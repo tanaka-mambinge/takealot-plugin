@@ -63,7 +63,7 @@ takealot_windows_arm64.exe
 checksums.txt
 ```
 
-To publish a release, update the plugin version, commit the change, and push a matching tag such as `v0.1.0`. The workflow runs tests, builds all targets with embedded version metadata, generates SHA-256 checksums, and creates the GitHub Release.
+To publish a release, update the plugin version, commit the change, and push a matching tag such as `v0.2.0`. The workflow runs tests, builds all targets with embedded version metadata, generates SHA-256 checksums, and creates the GitHub Release.
 
 ## API endpoint map
 

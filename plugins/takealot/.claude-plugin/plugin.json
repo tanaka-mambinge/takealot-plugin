@@ -1,7 +1,7 @@
 {
   "name": "takealot",
   "displayName": "Takealot Shopping Assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Takealot shopping assistant for product research, reviews, and explicitly confirmed wishlist actions.",
   "author": {
     "name": "t12e"
