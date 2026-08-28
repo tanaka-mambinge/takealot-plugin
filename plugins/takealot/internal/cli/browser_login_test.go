@@ -26,6 +26,9 @@ func TestWriteLoginPageEmbedsWordmarkAndEscapesStatus(t *testing.T) {
 		`id="toggle-password"`,
 		`aria-label="Show password"`,
 		`aria-controls="password"`,
+		`input[type=password],input#password`,
+		`button.password-toggle{position:absolute`,
+		`height:46px`,
 		`role="alert"`,
 		`&lt;script&gt;alert(&#34;no&#34;)&lt;/script&gt;`,
 	} {
@@ -44,6 +47,9 @@ func TestWriteLoginPageEmbedsWordmarkAndEscapesStatus(t *testing.T) {
 	}
 	if got := response.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
 		t.Fatalf("Content-Type = %q, want text/html; charset=utf-8", got)
+	}
+	if got := response.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q, want DENY", got)
 	}
 }
 

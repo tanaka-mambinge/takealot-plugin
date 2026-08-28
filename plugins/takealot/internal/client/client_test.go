@@ -79,7 +79,7 @@ func TestCanonicalProductURL(t *testing.T) {
 		{name: "relative legacy product path", value: "/product/moza-sr-p/PLID93563242", want: "https://www.takealot.com/moza-sr-p/PLID93563242"},
 		{name: "absolute legacy product path", value: "https://www.takealot.com/product/moza-sr-p/PLID93563242?colour=Black", want: "https://www.takealot.com/moza-sr-p/PLID93563242?colour=Black"},
 		{name: "canonical path", value: "https://www.takealot.com/moza-sr-p/PLID93563242", want: "https://www.takealot.com/moza-sr-p/PLID93563242"},
-		{name: "other host unchanged", value: "https://example.com/product/moza/PLID93563242", want: "https://example.com/product/moza/PLID93563242"},
+		{name: "other host falls back to canonical PLID", value: "https://example.com/product/moza/PLID93563242", want: "https://www.takealot.com/PLID93563242"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestProductDetailNormalization(t *testing.T) {
 
 func TestProductImagesDownload(t *testing.T) {
 	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	server = httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		switch request.URL.Path {
 		case "/product-details/PLID123":
 			writer.Header().Set("Content-Type", "application/json")
@@ -162,7 +162,7 @@ func TestProductImagesDownload(t *testing.T) {
 
 func TestProductImagesRejectNonImageResponse(t *testing.T) {
 	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	server = httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path == "/product-details/PLID123" {
 			writer.Header().Set("Content-Type", "application/json")
 			_, _ = writer.Write([]byte(`{"gallery":{"images":[{"url":"` + server.URL + `/images/not-an-image.jpg"}]}}`))
@@ -176,6 +176,25 @@ func TestProductImagesRejectNonImageResponse(t *testing.T) {
 	_, err := NewWithHTTPClient(server.Client(), server.URL, server.URL).DownloadProductImages(context.Background(), "123", ImageDownloadOptions{Directory: t.TempDir()})
 	if err == nil || !strings.Contains(err.Error(), "not an image") {
 		t.Fatalf("expected non-image error, got %v", err)
+	}
+}
+
+func TestProductImagesRejectSVG(t *testing.T) {
+	var server *httptest.Server
+	server = httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/product-details/PLID123" {
+			writer.Header().Set("Content-Type", "application/json")
+			_, _ = writer.Write([]byte(`{"gallery":{"images":[{"image":"` + server.URL + `/images/product.svg"}]}}`))
+			return
+		}
+		writer.Header().Set("Content-Type", "image/svg+xml")
+		_, _ = writer.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg"></svg>`))
+	}))
+	defer server.Close()
+
+	_, err := NewWithHTTPClient(server.Client(), server.URL, server.URL).DownloadProductImages(context.Background(), "123", ImageDownloadOptions{Directory: t.TempDir()})
+	if err == nil || !strings.Contains(err.Error(), "SVG images are not supported") {
+		t.Fatalf("expected SVG rejection, got %v", err)
 	}
 }
 

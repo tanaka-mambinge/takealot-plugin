@@ -59,8 +59,8 @@ h1{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.025em;font-weight:6
 .intro{margin:10px 0 24px;color:var(--muted);font-size:16px;line-height:1.55}
 .field{margin-top:17px}
 label{display:block;margin-bottom:7px;font-size:14px;font-weight:650}
-input[type=email],input[type=password],input[name=otp]{display:block;width:100%;min-height:48px;padding:11px 13px;border:1px solid #b8c5d2;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:16px;transition:border-color .15s ease,box-shadow .15s ease}
-input[type=email]:focus,input[type=password]:focus,input[name=otp]:focus{border-color:var(--blue);outline:2px solid var(--blue);outline-offset:-1px}
+input[type=email],input[type=password],input#password,input[name=otp]{display:block;width:100%;min-height:48px;padding:11px 13px;border:1px solid #b8c5d2;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:16px;transition:border-color .15s ease,box-shadow .15s ease}
+input[type=email]:focus,input[type=password]:focus,input#password:focus,input[name=otp]:focus{border-color:var(--blue);outline:2px solid var(--blue);outline-offset:-1px}
 .hint{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
 .otp-note{margin:16px 0 0;padding:12px 14px;border-left:3px solid var(--blue);background:#eef7fc;color:#38536b;font-size:14px;line-height:1.5}
 .checkbox-row{display:flex;align-items:flex-start;gap:10px;margin-top:18px;font-weight:400;font-size:14px;color:var(--muted)}
@@ -74,9 +74,9 @@ button:hover{background:var(--blue-dark)}
 button:active{transform:translateY(1px)}
 button:focus-visible{outline:2px solid var(--blue-dark);outline-offset:3px}
 button:disabled{background:#8bb9d5;cursor:wait}
-.password-control{position:relative}
-.password-control input{padding-right:58px}
-.password-toggle{position:absolute;top:0;right:0;display:grid;width:48px;min-height:48px;margin:0;padding:0;place-items:center;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.password-control{position:relative;display:block;width:100%}
+.password-control input{display:block;width:100%;min-width:0;padding-right:58px}
+button.password-toggle{position:absolute;top:1px;right:1px;display:grid;width:46px;height:46px;min-height:0;margin:0;padding:0;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
 .password-toggle:hover{background:#eef7fc;color:var(--blue-dark)}
 .password-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:-4px}
 .password-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -137,10 +137,33 @@ func runBrowserLogin(command *cobra.Command, initialEmail string, trustDevice bo
 	var pendingMu sync.Mutex
 	var pendingEmail, pendingPassword string
 	var pendingUntil time.Time
+	var tokenMu sync.RWMutex
+	tokenExpires := time.Now().Add(5 * time.Minute)
+	validToken := func(candidate string) bool {
+		tokenMu.RLock()
+		defer tokenMu.RUnlock()
+		return token != "" && candidate == token && time.Now().Before(tokenExpires)
+	}
+	invalidateToken := func() {
+		tokenMu.Lock()
+		token = ""
+		tokenMu.Unlock()
+	}
+	clearPending := func() {
+		pendingMu.Lock()
+		pendingEmail, pendingPassword = "", ""
+		pendingUntil = time.Time{}
+		pendingMu.Unlock()
+	}
+	defer clearPending()
+	loginExpiry := time.AfterFunc(5*time.Minute, func() {
+		finish(errors.New("local login page expired; start login again"))
+	})
+	defer loginExpiry.Stop()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(loginPagePath, func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Query().Get("token") != token {
+		if !validToken(request.URL.Query().Get("token")) {
 			writeLoginPage(writer, http.StatusNotFound, loginPageData{Message: "Login page not found.", Error: true})
 			return
 		}
@@ -152,6 +175,7 @@ func runBrowserLogin(command *cobra.Command, initialEmail string, trustDevice bo
 			writer.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+		request.Body = http.MaxBytesReader(writer, request.Body, 64<<10)
 		if err := request.ParseForm(); err != nil {
 			writeLoginPage(writer, http.StatusBadRequest, loginPageData{Token: token, Path: loginPagePath, Message: "The submitted form was invalid.", Error: true})
 			return
@@ -160,6 +184,10 @@ func runBrowserLogin(command *cobra.Command, initialEmail string, trustDevice bo
 		password := request.FormValue("password")
 		otp := strings.TrimSpace(request.FormValue("otp"))
 		pendingMu.Lock()
+		if !pendingUntil.IsZero() && !time.Now().Before(pendingUntil) {
+			pendingEmail, pendingPassword = "", ""
+			pendingUntil = time.Time{}
+		}
 		if password == "" && email != "" && email == pendingEmail && time.Now().Before(pendingUntil) {
 			password = pendingPassword
 		}
@@ -189,15 +217,13 @@ func runBrowserLogin(command *cobra.Command, initialEmail string, trustDevice bo
 			writeLoginPage(writer, http.StatusBadRequest, loginPageData{Token: token, Path: loginPagePath, Email: email, OTPRequired: otpRequired, Message: loginErr.Error(), Error: true})
 			return
 		}
-		pendingMu.Lock()
-		pendingEmail, pendingPassword = "", ""
-		pendingUntil = time.Time{}
-		pendingMu.Unlock()
+		clearPending()
+		invalidateToken()
 		writeLoginPage(writer, http.StatusOK, loginPageData{Token: token, Path: loginPagePath, Success: true, CustomerID: status.CustomerID, Message: "Signed in successfully. Your session is saved in the OS keyring."})
 		finish(nil)
 	})
 
-	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 90 * time.Second, IdleTimeout: 30 * time.Second}
 	go func() {
 		if serveErr := server.Serve(listener); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
 			finish(fmt.Errorf("local login page stopped: %w", serveErr))
@@ -227,6 +253,10 @@ func runBrowserLogin(command *cobra.Command, initialEmail string, trustDevice bo
 }
 
 func writeLoginPage(writer http.ResponseWriter, status int, data loginPageData) {
+	writer.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+	writer.Header().Set("X-Content-Type-Options", "nosniff")
+	writer.Header().Set("X-Frame-Options", "DENY")
+	writer.Header().Set("Referrer-Policy", "no-referrer")
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	writer.Header().Set("Cache-Control", "no-store")
 	writer.WriteHeader(status)

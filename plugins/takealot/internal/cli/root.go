@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/t12e/takealot-cli/internal/client"
+	"github.com/t12e/takealot-cli/internal/config"
 	"github.com/t12e/takealot-cli/internal/models"
 )
 
@@ -20,6 +21,9 @@ type rootOptions struct {
 var options rootOptions
 
 func Execute() error {
+	if _, err := config.HTTPTimeout(); err != nil {
+		return err
+	}
 	return newRootCommand().Execute()
 }
 

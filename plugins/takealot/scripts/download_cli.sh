@@ -4,7 +4,7 @@ set -eu
 umask 077
 
 repo="tanaka-mambinge/takealot-plugin"
-release_base="${TAKEALOT_RELEASE_BASE_URL:-https://github.com/${repo}/releases/latest/download}"
+release_base="https://github.com/${repo}/releases/latest/download"
 cache_dir="${TAKEALOT_CLI_HOME:-${HOME}/.takealot/bin}"
 
 if ! command -v curl >/dev/null 2>&1; then
@@ -34,7 +34,7 @@ if [ -x "${target}" ] && [ -s "${version_file}" ]; then
 	cached_version=$(awk 'NR == 1 { print; exit }' "${version_file}")
 fi
 
-latest_tag="${TAKEALOT_RELEASE_TAG:-}"
+latest_tag=""
 latest_headers=""
 if [ -z "${latest_tag}" ]; then
 	if latest_headers=$(curl --fail --silent --show-error --head --max-time 20 "${release_base}/${asset}" 2>/dev/null); then
@@ -55,12 +55,6 @@ if [ -z "${latest_tag}" ]; then
 fi
 
 if [ -n "${latest_tag}" ] && [ "${cached_version}" = "${latest_tag}" ] && [ -x "${target}" ]; then
-	printf '%s\n' "${target}"
-	exit 0
-fi
-
-if [ -z "${latest_tag}" ] && [ -x "${target}" ] && [ -s "${version_file}" ]; then
-	printf '%s\n' "Could not check the latest Takealot CLI release; using cached ${cached_version}." >&2
 	printf '%s\n' "${target}"
 	exit 0
 fi

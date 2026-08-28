@@ -1,10 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $repo = "tanaka-mambinge/takealot-plugin"
-$releaseBase = $env:TAKEALOT_RELEASE_BASE_URL
-if ([string]::IsNullOrWhiteSpace($releaseBase)) {
-    $releaseBase = "https://github.com/$repo/releases/latest/download"
-}
+$releaseBase = "https://github.com/$repo/releases/latest/download"
 
 $architecture = $env:PROCESSOR_ARCHITECTURE.ToUpperInvariant()
 switch ($architecture) {
@@ -50,20 +47,7 @@ function Get-LatestReleaseTag {
     return $segments[$downloadIndex + 1]
 }
 
-$latestTag = $env:TAKEALOT_RELEASE_TAG
-if ([string]::IsNullOrWhiteSpace($latestTag)) {
-    try {
-        $latestTag = Get-LatestReleaseTag
-    }
-    catch {
-        if ((Test-Path -LiteralPath $target -PathType Leaf) -and -not [string]::IsNullOrWhiteSpace($cachedVersion)) {
-            Write-Error "Could not check the latest Takealot CLI release; using cached $cachedVersion."
-            Write-Output $target
-            exit 0
-        }
-        throw
-    }
-}
+$latestTag = Get-LatestReleaseTag
 
 if ((Test-Path -LiteralPath $target -PathType Leaf) -and ($cachedVersion -eq $latestTag)) {
     Write-Output $target

@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/t12e/takealot-cli/internal/config"
 )
 
 const (
@@ -47,7 +49,7 @@ type Manager struct {
 
 func NewManager(httpClient *http.Client, base string, store *Store) *Manager {
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		httpClient = config.NewHTTPClient()
 	}
 	if store == nil {
 		store = NewStore()

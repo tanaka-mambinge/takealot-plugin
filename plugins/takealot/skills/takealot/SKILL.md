@@ -31,7 +31,13 @@ TAKEALOT_BIN="$(sh <plugin-root>/scripts/download_cli.sh)"
 $TAKEALOT_BIN = & powershell -NoProfile -ExecutionPolicy Bypass -File <plugin-root>\scripts\download_cli.ps1
 ```
 
-The launcher detects OS/architecture, downloads the matching latest GitHub Release asset, verifies `checksums.txt`, atomically updates the hidden user cache, and prints the executable path. It uses no Python, Go, `jq`, `gh`, package manager, global install, or `PATH` change. If it fails, explain the platform/download/checksum error and stop the Takealot portion; do not bypass verification or fall back to direct API calls.
+The launcher detects OS/architecture, downloads the matching latest GitHub Release asset from the official repository, verifies `checksums.txt`, atomically updates the hidden user cache, and prints the executable path. It uses no Python, Go, `jq`, `gh`, package manager, global install, or `PATH` change. If it fails, explain the platform/download/checksum error and stop the Takealot portion; do not bypass verification or fall back to direct API calls.
+
+Catalogue, image, review, and account requests use a 30-second timeout by default. When the agent needs more time, it may set `TAKEALOT_HTTP_TIMEOUT_SECONDS` in the command environment to an integer from `1` through `90`; values above 90 are rejected. Do not use this to wait indefinitely on a stalled service.
+
+For example, on Unix prefix the specific command with `TAKEALOT_HTTP_TIMEOUT_SECONDS=90`; on Windows set `$env:TAKEALOT_HTTP_TIMEOUT_SECONDS = "90"` before invoking the cached executable. Keep the override scoped to the current research task.
+
+If a read-only Takealot CLI operation fails with a timeout, TLS handshake timeout, or other temporary transport timeout, retry the same operation once automatically with `TAKEALOT_HTTP_TIMEOUT_SECONDS=90`. Do not ask the user for permission; this is an internal, read-only retry. If it fails again, report the concise error. Do not blindly repeat a wishlist mutation after a timeout because the server may have accepted the original request.
 
 When the CLI prints a localhost login URL, immediately repeat the exact URL in chat as a clickable Markdown link and keep the login command running while the user completes it.
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/t12e/takealot-cli/internal/auth"
+	"github.com/t12e/takealot-cli/internal/config"
 	"github.com/t12e/takealot-cli/internal/models"
 )
 
@@ -19,12 +20,12 @@ type AuthenticatedClient struct {
 }
 
 func NewAuthenticated() *AuthenticatedClient {
-	return NewAuthenticatedWithHTTPClient(http.DefaultClient, SearchAPIBase, MobileAPIBase, auth.NewStore())
+	return NewAuthenticatedWithHTTPClient(config.NewHTTPClient(), SearchAPIBase, MobileAPIBase, auth.NewStore())
 }
 
 func NewAuthenticatedWithHTTPClient(httpClient *http.Client, searchBase, mobileBase string, store *auth.Store) *AuthenticatedClient {
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		httpClient = config.NewHTTPClient()
 	}
 	return &AuthenticatedClient{
 		manager:   auth.NewManager(httpClient, mobileBase, store),

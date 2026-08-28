@@ -35,10 +35,12 @@ By default, `auth login` starts a loopback-only, one-time login page and attempt
 
 ## Release and agent bootstrap
 
-The CLI is not installed as part of the plugin. The Takealot skill runs the native launcher before doing research. The launcher checks the latest release tag and reuses the verified cached binary when it is current; it downloads and verifies a replacement only when the cache is missing or a newer release is available:
+The CLI is not installed as part of the plugin. The Takealot skill runs the native launcher before doing research. The launcher checks the official latest release tag and reuses the cached binary only when it matches that tag; otherwise it downloads and verifies a replacement:
 
 - Linux/macOS: `scripts/download_cli.sh`, using `uname`, `curl`, `mktemp`, `awk`, and `sha256sum` or `shasum`.
 - Windows: `scripts/download_cli.ps1`, using PowerShell's `Invoke-WebRequest` and `Get-FileHash`.
+
+Network operations use a 30-second timeout by default. The agent automatically retries a timed-out read-only operation once with `TAKEALOT_HTTP_TIMEOUT_SECONDS=90`; users do not need to approve that retry. Set `TAKEALOT_HTTP_TIMEOUT_SECONDS` to an integer from `1` through `90` when a slower operation needs more time; values above 90 are rejected. Wishlist mutations are not blindly repeated after a timeout because the server may already have accepted them.
 
 The launcher checks the stable asset for the host OS/architecture from `tanaka-mambinge/takealot-plugin`, compares the release tag with a hidden cache marker, and verifies `checksums.txt` only when an update is needed. It stores the executable and release marker in a hidden user-scoped cache without changing `PATH`:
 

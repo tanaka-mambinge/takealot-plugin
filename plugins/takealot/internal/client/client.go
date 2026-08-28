@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/t12e/takealot-cli/internal/config"
 	"github.com/t12e/takealot-cli/internal/models"
 )
 
@@ -25,30 +27,45 @@ const (
 )
 
 type Client struct {
-	httpClient *http.Client
-	searchBase string
-	mobileBase string
-	imageHosts map[string]struct{}
+	httpClient  *http.Client
+	imageClient *http.Client
+	searchBase  string
+	mobileBase  string
+	imageHosts  map[string]struct{}
 }
 
 func New() *Client {
-	return NewWithHTTPClient(http.DefaultClient, SearchAPIBase, MobileAPIBase)
+	return NewWithHTTPClient(config.NewHTTPClient(), SearchAPIBase, MobileAPIBase)
 }
 
 // NewWithHTTPClient is useful for deterministic tests and local API proxies.
 func NewWithHTTPClient(httpClient *http.Client, searchBase, mobileBase string) *Client {
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		httpClient = config.NewHTTPClient()
 	}
 	imageHosts := map[string]struct{}{"media.takealot.com": {}}
 	if parsed, err := url.Parse(mobileBase); err == nil && parsed.Hostname() != "" {
 		imageHosts[strings.ToLower(parsed.Hostname())] = struct{}{}
 	}
+	imageClient := *httpClient
+	imageClient.CheckRedirect = func(request *http.Request, via []*http.Request) error {
+		if len(via) >= 3 {
+			return errors.New("image download followed too many redirects")
+		}
+		if request.URL.Scheme != "https" {
+			return errors.New("image download redirect must use HTTPS")
+		}
+		if _, ok := imageHosts[strings.ToLower(request.URL.Hostname())]; !ok {
+			return fmt.Errorf("image redirect host %q is not allowed", request.URL.Hostname())
+		}
+		return nil
+	}
 	return &Client{
-		httpClient: httpClient,
-		searchBase: strings.TrimRight(searchBase, "/"),
-		mobileBase: strings.TrimRight(mobileBase, "/"),
-		imageHosts: imageHosts,
+		httpClient:  httpClient,
+		imageClient: &imageClient,
+		searchBase:  strings.TrimRight(searchBase, "/"),
+		mobileBase:  strings.TrimRight(mobileBase, "/"),
+		imageHosts:  imageHosts,
 	}
 }
 
@@ -240,7 +257,7 @@ func defaultImageDirectory(plid string) (string, error) {
 
 func (c *Client) downloadImage(ctx context.Context, sourceURL, directory string, index int) (models.DownloadedImage, error) {
 	parsed, err := url.Parse(sourceURL)
-	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Hostname() == "" {
+	if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" {
 		return models.DownloadedImage{}, fmt.Errorf("invalid image URL %q", sourceURL)
 	}
 	if _, ok := c.imageHosts[strings.ToLower(parsed.Hostname())]; !ok {
@@ -251,10 +268,10 @@ func (c *Client) downloadImage(ctx context.Context, sourceURL, directory string,
 	if err != nil {
 		return models.DownloadedImage{}, fmt.Errorf("build image request: %w", err)
 	}
-	req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+	req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
 	req.Header.Set("Referer", "https://www.takealot.com/")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; takealot-cli/1.0)")
-	response, err := c.httpClient.Do(req)
+	response, err := c.imageClient.Do(req)
 	if err != nil {
 		return models.DownloadedImage{}, fmt.Errorf("request image: %w", err)
 	}
@@ -285,6 +302,9 @@ func (c *Client) downloadImage(ctx context.Context, sourceURL, directory string,
 	}
 	if !strings.HasPrefix(contentType, "image/") {
 		return models.DownloadedImage{}, fmt.Errorf("response is not an image (content type %q)", contentType)
+	}
+	if contentType == "image/svg+xml" || looksLikeSVG(body) {
+		return models.DownloadedImage{}, errors.New("SVG images are not supported for local rendering")
 	}
 
 	filename := fmt.Sprintf("%02d%s", index, imageExtension(contentType))
@@ -522,7 +542,7 @@ func normalizeProductDetails(raw map[string]any, plid string) models.ProductDeta
 		DescriptionHTML: descriptionHTML,
 		BulletPoints:    normalizeBulletPoints(raw["bullet_point_attributes"]),
 		Attributes:      normalizeAttributes(raw["product_information"]),
-		Variants:        normalizeVariants(raw["variants"]),
+		Variants:        normalizeVariants(raw["variants"], plid),
 		Seller:          normalizeSeller(firstMap(buybox["seller_detail"], buyboxItem["seller_detail"], buybox["seller"], buyboxItem["seller"])),
 		Returns:         normalizeReturns(raw["exchanges_and_returns"]),
 		Gallery:         extractImageURLs(raw["gallery"]),
@@ -686,7 +706,7 @@ func normalizeAttributes(raw any) []models.Attribute {
 	return result
 }
 
-func normalizeVariants(raw any) []models.VariantSelector {
+func normalizeVariants(raw any, plid string) []models.VariantSelector {
 	container := asMap(raw)
 	result := make([]models.VariantSelector, 0)
 	for _, item := range asSlice(container["selectors"]) {
@@ -701,7 +721,7 @@ func normalizeVariants(raw any) []models.VariantSelector {
 				continue
 			}
 			value := asMap(option["value"])
-			variant.Options = append(variant.Options, models.VariantOption{ID: firstString(option["id"]), Name: firstString(value["name"], option["name"], option["label"]), Value: firstString(value["value"], option["value"]), Enabled: getBool(option["is_enabled"]), Selected: getBool(option["is_selected"]), URL: firstString(option["href"], option["desktop_href"]), ImageURLs: extractImageURLs(option["image"])})
+			variant.Options = append(variant.Options, models.VariantOption{ID: firstString(option["id"]), Name: firstString(value["name"], option["name"], option["label"]), Value: firstString(value["value"], option["value"]), Enabled: getBool(option["is_enabled"]), Selected: getBool(option["is_selected"]), URL: productURLWithSlug(firstString(option["href"], option["desktop_href"]), plid, ""), ImageURLs: extractImageURLs(option["image"])})
 		}
 		result = append(result, variant)
 	}
@@ -746,11 +766,8 @@ func productURL(value, plid string) string {
 }
 
 func productURLWithSlug(value, plid, slug string) string {
-	if value != "" {
-		if strings.HasPrefix(value, "/") {
-			value = "https://www.takealot.com" + value
-		}
-		return canonicalProductURL(value)
+	if canonical := canonicalProductURL(value, plid); canonical != "" {
+		return canonical
 	}
 	if slug != "" {
 		return "https://www.takealot.com/" + url.PathEscape(slug) + "/PLID" + plid
@@ -758,21 +775,39 @@ func productURLWithSlug(value, plid, slug string) string {
 	return "https://www.takealot.com/PLID" + plid
 }
 
-func canonicalProductURL(value string) string {
+func canonicalProductURL(value, plid string) string {
+	if strings.HasPrefix(value, "/") {
+		value = "https://www.takealot.com" + value
+	}
 	parsed, err := url.Parse(value)
 	if err != nil || parsed.Hostname() == "" {
-		return value
+		return ""
 	}
 	host := strings.ToLower(parsed.Hostname())
 	if host != "takealot.com" && host != "www.takealot.com" {
-		return value
+		return ""
+	}
+	match := plidPattern.FindStringSubmatch(parsed.Path)
+	if len(match) != 2 || match[1] != plid {
+		return ""
 	}
 	segments := strings.Split(parsed.Path, "/")
 	if len(segments) > 1 && strings.EqualFold(segments[1], "product") {
 		segments = append(segments[:1], segments[2:]...)
 		parsed.Path = strings.Join(segments, "/")
 	}
+	parsed.Scheme = "https"
+	parsed.Host = "www.takealot.com"
 	return parsed.String()
+}
+
+func looksLikeSVG(body []byte) bool {
+	limit := len(body)
+	if limit > 4096 {
+		limit = 4096
+	}
+	prefix := strings.ToLower(string(bytes.TrimSpace(body[:limit])))
+	return strings.Contains(prefix, "<svg")
 }
 
 func asMap(value any) map[string]any {
