@@ -17,6 +17,8 @@ Catalogue research is read-only. Wishlist changes are allowed only after the use
 - Use the exact canonical `url` returned by `product get`; never construct a product link. If verification is available, check it is not a 404.
 - Do not claim location-specific availability, stock, delivery, shipping, or fulfilment. Prices, promotions, and listing details are volatile.
 - Never print, request in chat, or store passwords/tokens outside the CLI's secure local flow. Never read the mobile app's private storage.
+- Check direct Reddit discussions first when researching user experience, long-term ownership, problems, or review themes. Use Takealot reviews primarily for the platform rating, distribution, and listing-specific feedback, then use other external sources to corroborate important claims.
+- Responses SHOULD include at least one local product image for each shortlisted or recommended product, placed in its product card. If a relevant image cannot be downloaded or rendered, state that briefly and retain the verified product link.
 - Keep responses compact: use product cards, short review takeaways, clickable links, and local image previews. Do not dump raw JSON or full descriptions/reviews.
 
 ## Bootstrap the CLI
@@ -55,19 +57,19 @@ Use normalized JSON when selecting or comparing products:
 "$TAKEALOT_BIN" product reviews <plid-or-takealot-url> --sort latest --json
 ```
 
-For each serious candidate, fetch details, download up to three images, and fetch the overall rating/distribution plus representative five-star, one-star, and latest reviews. View the local images when image viewing is available. Follow the research guide for what to inspect, how to compare variants, and how to weigh anecdotal reviews against external evidence.
+For each serious candidate, fetch details, download up to three images, and fetch the overall rating/distribution plus representative five-star, one-star, and latest reviews. Search Reddit before other external review sources, using the exact product identity and relevant subreddits where possible. View the local images when image viewing is available. Follow the research guide for what to inspect, how to compare variants, and how to weigh anecdotal reviews against external evidence.
 
 ## Product links and images
 
 For every product link, resolve with `product get` and copy only its normalized `url` field. The link must contain the matching PLID. Never use stale search snippets, browser history, API URLs, or remote image URLs as the product link.
 
-For every shortlisted or recommended product, run:
+For every shortlisted or recommended product, try to run:
 
 ```bash
 "$TAKEALOT_BIN" product images <plid-or-url> --limit 3 --json
 ```
 
-Render at least one returned absolute `local_path` immediately below the product name/link:
+When a returned absolute `local_path` is available, render at least one immediately below the product name/link:
 
 ```markdown
 ![Product image](/absolute/path/01.jpg)

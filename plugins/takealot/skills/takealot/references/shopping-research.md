@@ -17,7 +17,7 @@ Review snapshot: 4.6/5 from 120 reviews. Positives: quiet and easy to assemble. 
 [View it on Takealot](takealot-url)
 ```
 
-Show at least one local product image per shortlisted product in chat. Always run `takealot product images <plid> --limit 3 --json` and render an absolute `local_path`; this avoids remote CDN preview failures. Add a second or third gallery image when appearance, size, ports, accessories, or other visual details affect the decision. Place the image directly below the product name/link, before the text evidence. Include the listed price, sale status when known, direct link, and a short review snapshot. Do not give an availability, stock, shipping, or delivery verdict because those can vary by location and fulfilment context. Mention one or two representative positive, critical, or recent review takeaways; do not paste full reviews or every specification into the first response. Keep the initial shortlist to roughly three to five products when comparing options, and offer deeper details on request. If local image download or rendering is unavailable, keep the product card useful with the Takealot link and state that the image preview could not be displayed; do not claim that an image was shown.
+Responses SHOULD show at least one local product image per shortlisted product in chat. Try `takealot product images <plid> --limit 3 --json` and render an absolute `local_path`; this avoids remote CDN preview failures. Add a second or third gallery image when appearance, size, ports, accessories, or other visual details affect the decision. Place the image directly below the product name/link, before the text evidence. Include the listed price, sale status when known, direct link, and a short review snapshot. Do not give an availability, stock, shipping, or delivery verdict because those can vary by location and fulfilment context. Mention one or two representative positive, critical, or recent review takeaways; do not paste full reviews or every specification into the first response. Keep the initial shortlist to roughly three to five products when comparing options, and offer deeper details on request. If local image download or rendering is unavailable, keep the product card useful with the Takealot link and state that the image preview could not be displayed; do not claim that an image was shown.
 
 ## Workflow
 
@@ -25,8 +25,8 @@ Show at least one local product image per shortlisted product in chat. Always ru
 2. Search Takealot and shortlist products that satisfy the request. Keep the search query and result date in mind.
 3. Inspect each candidate’s gallery, description, specifications, warranty, seller, returns, and current listed price.
 4. Capture the total review count and complete five-bucket distribution before sampling reviews.
-5. Read representative five-star, one-star, and latest reviews. Sample more than one page when the count is large or themes conflict.
-6. Search the exact model externally. Check manufacturer documentation, independent testing, reputable publications, direct Reddit discussions, and credible retailer information.
+5. Read representative five-star, one-star, and latest Takealot reviews. Sample more than one page when the count is large or themes conflict; use these primarily for the platform rating, distribution, and listing-specific feedback.
+6. Search Reddit first for the exact model and relevant user-experience themes. Then check manufacturer documentation, independent testing, reputable publications, and credible retailer information to corroborate specifications or important claims.
 7. Compare evidence by theme: performance, durability, comfort, compatibility, setup, support, delivery, and value.
 8. Produce a balanced brief with explicit confidence and caveats.
 9. If the user explicitly asks to save a product, resolve the canonical URL and wishlist target, show both in chat, obtain confirmation, and then use `wishlist add ... --confirm`. Do not modify wishlists automatically during research.
@@ -54,7 +54,8 @@ When web verification is available, request the canonical product page before pu
 
 - Product fields, visible images, rating counts, review dates, and quoted product copy are observations. Label interpretation as interpretation.
 - A repeated, specific complaint is more meaningful than one isolated anecdote, but user reviews remain anecdotal.
-- Reddit is valuable for long-term ownership and edge cases, not a representative survey. Do not generalize a subreddit thread to every buyer.
+- Reddit is the primary external review source for user experience, long-term ownership, and edge cases, but it is not a representative survey. Do not generalize a subreddit thread to every buyer; corroborate important claims where possible.
+- Takealot reviews are supplementary for the platform rating, review distribution, and listing-specific feedback. Do not let the star average substitute for checking Reddit first.
 - Manufacturer documentation is strongest for specifications and compatibility. Independent testing is strongest for measured performance. Reputable publications can provide useful comparative context.
 - Compare reviews within the same variant. A colour, size, generation, bundle, or seller change can make evidence non-comparable.
 - Note review count and distribution. A 4.8 average from 12 reviews deserves lower confidence than a 4.6 average from 1,000 reviews.
